@@ -217,7 +217,7 @@ IoT_Error_t aws_iot_shadow_add_reported(char *pJsonDocument, size_t maxSizeOfJso
 int32_t FillWithClientTokenSize(char *pBufferToBeUpdatedWithClientToken, size_t maxSizeOfJsonDocument) {
 	int32_t snPrintfReturn;
 	snPrintfReturn = snprintf(pBufferToBeUpdatedWithClientToken, maxSizeOfJsonDocument, "%s-%d", mqttClientID,
-							  clientTokenNum++);
+				  (int) clientTokenNum++);
 
 	return snPrintfReturn;
 }
@@ -282,7 +282,7 @@ IoT_Error_t aws_iot_finalize_json_document(char *pJsonDocument, size_t maxSizeOf
 }
 
 void FillWithClientToken(char *pBufferToBeUpdatedWithClientToken) {
-	sprintf(pBufferToBeUpdatedWithClientToken, "%s-%d", mqttClientID, clientTokenNum++);
+	sprintf(pBufferToBeUpdatedWithClientToken, "%s-%d", mqttClientID, (int) clientTokenNum++);
 }
 
 static IoT_Error_t convertDataToString(char *pStringBuffer, size_t maxSizoStringBuffer, JsonPrimitiveType type,
@@ -314,7 +314,10 @@ static IoT_Error_t convertDataToString(char *pStringBuffer, size_t maxSizoString
 		snPrintfReturn = snprintf(pStringBuffer, maxSizoStringBuffer, "%s,", *(bool *) (pData) ? "true" : "false");
 	} else if(type == SHADOW_JSON_STRING) {
 		snPrintfReturn = snprintf(pStringBuffer, maxSizoStringBuffer, "\"%s\",", (char *) (pData));
+	} else if(type == SHADOW_JSON_OBJECT) {
+		snPrintfReturn = snprintf(pStringBuffer, maxSizoStringBuffer, "%s,", (char *) (pData));
 	}
+
 
 	ret_val = checkReturnValueOfSnPrintf(snPrintfReturn, maxSizoStringBuffer);
 
@@ -370,7 +373,9 @@ static IoT_Error_t UpdateValueIfNoObject(const char *pJsonString, jsonStruct_t *
 		ret_val = parseFloatValue((float *) pDataStruct->pData, pJsonString, &token);
 	} else if(pDataStruct->type == SHADOW_JSON_DOUBLE) {
 		ret_val = parseDoubleValue((double *) pDataStruct->pData, pJsonString, &token);
-	}
+	} else if(pDataStruct->type == SHADOW_JSON_STRING) {
+		ret_val = parseStringValue((char *) pDataStruct->pData, pJsonString, &token);
+        }
 
 	return ret_val;
 }
@@ -391,6 +396,8 @@ bool isJsonKeyMatchingAndUpdateValue(const char *pJsonDocument, void *pJsonHandl
 			*pDataPosition = dataToken.start;
 			*pDataLength = dataLength;
 			return true;
+		} else if(jsoneq(pJsonDocument, &(jsonTokenStruct[i]), "metadata") == 0) {
+			return false;
 		}
 	}
 	return false;

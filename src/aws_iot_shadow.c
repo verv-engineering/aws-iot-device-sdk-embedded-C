@@ -36,7 +36,9 @@ const ShadowInitParameters_t ShadowInitParametersDefault = {(char *) AWS_IOT_MQT
 															NULL, false, NULL};
 
 const ShadowConnectParameters_t ShadowConnectParametersDefault = {(char *) AWS_IOT_MY_THING_NAME,
-																  (char *) AWS_IOT_MQTT_CLIENT_ID, 0, NULL};
+								  (char *) AWS_IOT_MQTT_CLIENT_ID, 0, NULL};
+
+static char deleteAcceptedTopic[MAX_SHADOW_TOPIC_LENGTH_BYTES];
 
 void aws_iot_shadow_reset_last_received_version(void) {
 	shadowJsonVersionNum = 0;
@@ -70,6 +72,7 @@ IoT_Error_t aws_iot_shadow_init(AWS_IoT_Client *pClient, const ShadowInitParamet
 	mqttInitParams.pRootCALocation = pParams->pRootCA;
 	mqttInitParams.pDeviceCertLocation = pParams->pClientCRT;
 	mqttInitParams.pDevicePrivateKeyLocation = pParams->pClientKey;
+	mqttInitParams.mqttPacketTimeout_ms = 5000;
 	mqttInitParams.mqttCommandTimeout_ms = 20000;
 	mqttInitParams.tlsHandshakeTimeout_ms = 5000;
 	mqttInitParams.isSSLHostnameVerify = true;
@@ -89,7 +92,6 @@ IoT_Error_t aws_iot_shadow_init(AWS_IoT_Client *pClient, const ShadowInitParamet
 
 IoT_Error_t aws_iot_shadow_connect(AWS_IoT_Client *pClient, const ShadowConnectParameters_t *pParams) {
 	IoT_Error_t rc = SUCCESS;
-	char deleteAcceptedTopic[MAX_SHADOW_TOPIC_LENGTH_BYTES];
 	uint16_t deleteAcceptedTopicLen;
 	IoT_Client_Connect_Params ConnectParams = iotClientConnectParamsDefault;
 
@@ -102,7 +104,7 @@ IoT_Error_t aws_iot_shadow_connect(AWS_IoT_Client *pClient, const ShadowConnectP
 	snprintf(myThingName, MAX_SIZE_OF_THING_NAME, "%s", pParams->pMyThingName);
 	snprintf(mqttClientID, MAX_SIZE_OF_UNIQUE_CLIENT_ID_BYTES, "%s", pParams->pMqttClientId);
 
-	ConnectParams.keepAliveIntervalInSec = 10;
+	ConnectParams.keepAliveIntervalInSec = 600; // NOTE: Temporary fix
 	ConnectParams.MQTTVersion = MQTT_3_1_1;
 	ConnectParams.isCleanSession = true;
 	ConnectParams.isWillMsgPresent = false;
@@ -113,9 +115,11 @@ IoT_Error_t aws_iot_shadow_connect(AWS_IoT_Client *pClient, const ShadowConnectP
 
 	rc = aws_iot_mqtt_connect(pClient, &ConnectParams);
 
-	if(SUCCESS == rc) {
-		initializeRecords(pClient);
+	if(SUCCESS != rc) {
+		FUNC_EXIT_RC(rc);
 	}
+
+	initializeRecords(pClient);
 
 	if(NULL != pParams->deleteActionHandler) {
 		snprintf(deleteAcceptedTopic, MAX_SHADOW_TOPIC_LENGTH_BYTES,
