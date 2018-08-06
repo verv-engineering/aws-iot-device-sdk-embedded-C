@@ -2,15 +2,15 @@
 .prevent_execution:
 	exit 0
 
-CC = g++
+CC = gcc
 
 #remove @ for no make command prints
 DEBUG = @
 
 APP_DIR = .
 APP_INCLUDE_DIRS += -I $(APP_DIR)
-APP_NAME = subscribe_publish_cpp_sample
-APP_SRC_FILES = $(APP_NAME).cpp
+APP_NAME = jobs_sample
+APP_SRC_FILES = $(APP_NAME).c
 
 #IoT client directory
 IOT_CLIENT_DIR = ../../..
@@ -19,6 +19,7 @@ PLATFORM_DIR = $(IOT_CLIENT_DIR)/platform/linux/mbedtls
 PLATFORM_COMMON_DIR = $(IOT_CLIENT_DIR)/platform/linux/common
 
 IOT_INCLUDE_DIRS += -I $(IOT_CLIENT_DIR)/include
+IOT_INCLUDE_DIRS += -I $(IOT_CLIENT_DIR)/sdk_config
 IOT_INCLUDE_DIRS += -I $(IOT_CLIENT_DIR)/external_libs/jsmn
 IOT_INCLUDE_DIRS += -I $(PLATFORM_COMMON_DIR)
 IOT_INCLUDE_DIRS += -I $(PLATFORM_DIR)
@@ -53,7 +54,6 @@ LOG_FLAGS += -DENABLE_IOT_ERROR
 COMPILER_FLAGS += $(LOG_FLAGS)
 #If the processor is big endian uncomment the compiler flag
 #COMPILER_FLAGS += -DREVERSED
-COMPILER_FLAGS += -std=c++0x
 
 MBED_TLS_MAKE_CMD = $(MAKE) -C $(MBEDTLS_DIR)
 
